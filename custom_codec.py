@@ -1,32 +1,36 @@
-from typing import List
+import re
+from typing import List, Optional
 
 
 class CustomCodec:
     def encode(self, text: str) -> str:
-        words: List[str] = text.split()
+        tokens = re.split(r"(\W+)", text)
         encoded_words: List[str] = []
-        for word in words:
-            encoded_word = word
-            encoded_word = self._substitution(encoded_word)
-            encoded_word = self._rearrangement(encoded_word)
-            encoded_word = self._index_based(encoded_word)
+        for token in tokens:
+            encoded_word = token
+            if encoded_word.isalnum():
+                encoded_word = self._substitution(encoded_word)
+                encoded_word = self._rearrangement(encoded_word)
+                encoded_word = self._index_based(encoded_word)
             encoded_words.append(encoded_word)
-        encoded_text = self._add_special_symbol(" ".join(encoded_words))
+        encoded_text = "".join(encoded_words)
+        encoded_text = self._add_special_symbol(encoded_text)
         encoded_text = self._multiply_numbers(encoded_text)
         return encoded_text
 
     def decode(self, encoded_text: str) -> str:
         encoded_text = self._divide_numbers(encoded_text)
         encoded_text = self._delete_special_symbol(encoded_text)
-        encoded_words: List[str] = encoded_text.split()
+        tokens = re.split(r"(\W+)", encoded_text)
         words: List[str] = []
-        for encoded_word in encoded_words:
-            word = encoded_word
-            word = self._reverse_index_based(word)
-            word = self._reverse_rearrangement(word)
-            word = self._reverse_substitution(word)
+        for token in tokens:
+            word = token
+            if word.isalnum():
+                word = self._reverse_index_based(word)
+                word = self._reverse_rearrangement(word)
+                word = self._reverse_substitution(word)
             words.append(word)
-        return " ".join(words)
+        return "".join(words)
 
     def _multiply_numbers(self, string: str) -> str:
         """
@@ -42,6 +46,8 @@ class CustomCodec:
 
             digits = self._get_digits_from_string(string, idx)
             new_digits = int(digits) * 3
+            if new_digits != 0 and digits[0] == "0":
+                new_digits = "0" + str(new_digits)
             encoded_string += str(new_digits)[::-1]
             idx += len(digits)
 
@@ -58,6 +64,8 @@ class CustomCodec:
 
             digits = self._get_digits_from_string(encoded_string, idx)
             new_digits = int(digits[::-1]) // 3
+            if new_digits != 0 and digits[-1] == "0":
+                new_digits = "0" + str(new_digits)
             string += str(new_digits)
             idx += len(digits)
 
@@ -84,32 +92,36 @@ class CustomCodec:
         if string.isnumeric():
             return string
 
-        encoded_string = []
+        encoded_string = ""
         for idx, char in enumerate(string):
-            if char.isalpha():
-                ascii_code = ord(char) + idx
-                if not chr(ascii_code).isalpha():
-                    ascii_code -= 25
-                encoded_string.append(chr(ascii_code))
-            else:
-                encoded_string.append(char)
-        return "".join(encoded_string)
+            if not char.isalpha():
+                encoded_string += char
+                continue
+
+            ascii_code = ord(char) + idx
+            if not chr(ascii_code).isalpha():
+                ascii_code -= 26
+            encoded_string += chr(ascii_code)
+
+        return encoded_string
 
     @staticmethod
     def _reverse_index_based(encoded_string: str) -> str:
         if encoded_string.isnumeric():
             return encoded_string
 
-        string = []
+        string = ""
         for idx, char in enumerate(encoded_string):
-            if char.isalpha():
-                ascii_code = ord(char) - idx
-                if not chr(ascii_code).isalpha():
-                    ascii_code += 25
-                string.append(chr(ascii_code))
-            else:
-                string.append(char)
-        return "".join(string)
+            if not char.isalpha():
+                string += char
+                continue
+
+            ascii_code = ord(char) - idx
+            if not chr(ascii_code).isalpha():
+                ascii_code += 26
+            string += chr(ascii_code)
+
+        return string
 
     @staticmethod
     def _rearrangement(string: str) -> str:
@@ -118,17 +130,15 @@ class CustomCodec:
         If the word has an odd number of letters, include the middle letter in the first half.
         example: "Python" becomes "honPyt".
         """
-        if len(string) <= 5:
+        if len(string) < 5:
             return string
 
-        middle: int = len(string) // 2
-        if len(string) % 2 != 0:
-            middle += 1
+        middle: int = len(string) // 2 + len(string) % 2
         return string[middle:] + string[:middle]
 
     @staticmethod
     def _reverse_rearrangement(encoded_string: str) -> str:
-        if len(encoded_string) <= 5:
+        if len(encoded_string) < 5:
             return encoded_string
 
         middle: int = len(encoded_string) // 2
@@ -163,7 +173,7 @@ class CustomCodec:
         while idx < len(encoded_string):
             char: str = encoded_string[idx]
             if char.isdigit():
-                ascii_code = self._get_digits_from_string(encoded_string, start=idx)
+                ascii_code = self._get_digits_from_string(encoded_string, start=idx, max_len=3)
                 decoded_string += chr(int(ascii_code))
                 idx += len(ascii_code)
             elif char.isalpha():
@@ -177,10 +187,12 @@ class CustomCodec:
         return "".join(decoded_string)
 
     @staticmethod
-    def _get_digits_from_string(string: str, start: int) -> str:
+    def _get_digits_from_string(string: str, start: int, max_len: Optional[int] = None) -> str:
         i = start
         digits = ""
         while i < len(string) and string[i].isdigit():
+            if max_len is not None and len(digits) >= max_len:
+                break
             digits += string[i]
             i += 1
         return digits
