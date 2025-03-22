@@ -1,5 +1,6 @@
 import re
-from typing import List, Optional
+
+from typing import List
 
 
 class CustomCodec:
@@ -164,16 +165,25 @@ class CustomCodec:
                 encoded_string += char
         return encoded_string
 
-    def _reverse_substitution(self, encoded_string: str) -> str:
+    @staticmethod
+    def _reverse_substitution(encoded_string: str) -> str:
         if encoded_string.isnumeric():
             return encoded_string
+
+        def get_ascii_of_alpha(string: str, start: int) -> str:
+            code, pos = "", start
+            while pos < len(string) and string[pos].isdigit():
+                code += string[pos]
+                pos += 1
+                if chr(int(code)).isalpha():
+                    return code
 
         idx = 0
         decoded_string = ""
         while idx < len(encoded_string):
             char: str = encoded_string[idx]
             if char.isdigit():
-                ascii_code = self._get_digits_from_string(encoded_string, start=idx, max_len=3)
+                ascii_code = get_ascii_of_alpha(encoded_string, start=idx)
                 decoded_string += chr(int(ascii_code))
                 idx += len(ascii_code)
             elif char.isalpha():
@@ -187,14 +197,10 @@ class CustomCodec:
         return "".join(decoded_string)
 
     @staticmethod
-    def _get_digits_from_string(string: str, start: int, max_len: Optional[int] = None) -> str:
+    def _get_digits_from_string(string: str, start: int) -> str:
         i = start
         digits = ""
         while i < len(string) and string[i].isdigit():
-            if max_len is not None and len(digits) >= max_len:
-                break
             digits += string[i]
             i += 1
         return digits
-
-
