@@ -9,8 +9,8 @@ if __name__ == "__main__":
     # m11#1M1#01u# sn#gX1#11!# 63#9
 
     test_string = "Hello World! 123"
+    # test_string = "Happy New Year! 2025!!!"
     # test_string = "Hello, Wonderful Z! 123"
-    # test_string = "Happy New Year 2025"
 
     print(f"Original string: {test_string}")
 

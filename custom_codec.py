@@ -16,11 +16,11 @@ class CustomCodec:
             encoded_words.append(encoded_word)
         encoded_text = "".join(encoded_words)
         encoded_text = self._add_special_symbol(encoded_text)
-        encoded_text = self._multiply_numbers(encoded_text)
+        encoded_text = self._transform_numbers(encoded_text)
         return encoded_text
 
     def decode(self, encoded_text: str) -> str:
-        encoded_text = self._divide_numbers(encoded_text)
+        encoded_text = self._reverse_transform_numbers(encoded_text)
         encoded_text = self._delete_special_symbol(encoded_text)
         tokens = re.split(r"(\W+)", encoded_text)
         words: List[str] = []
@@ -33,55 +33,84 @@ class CustomCodec:
             words.append(word)
         return "".join(words)
 
-    def _multiply_numbers(self, string: str) -> str:
+    @staticmethod
+    def _transform_numbers(text: str) -> str:
         """
         Multiply numbers by 3 and reverse
         """
-        idx = 0
-        encoded_string = ""
-        while idx < len(string):
-            if not string[idx].isdigit():
-                encoded_string += string[idx]
-                idx += 1
+
+        def multiply_and_reverse(string: str) -> str:
+            new_string = int(string) * 3
+            if new_string != 0 and string[0] == "0":
+                new_string = "0" + str(new_string)
+            new_string = str(new_string)[::-1]
+            return new_string
+
+        encoded_text = []
+        words = text.split()
+        for word in words:
+            clear_word = "".join(re.findall(r"\b\w+\b", word))
+            if not clear_word.isdigit():
+                encoded_text.append(word)
                 continue
 
-            digits = self._get_digits_from_string(string, idx)
-            new_digits = int(digits) * 3
-            if new_digits != 0 and digits[0] == "0":
-                new_digits = "0" + str(new_digits)
-            encoded_string += str(new_digits)[::-1]
-            idx += len(digits)
-
-        return encoded_string
-
-    def _divide_numbers(self, encoded_string: str) -> str:
-        idx = 0
-        string = ""
-        while idx < len(encoded_string):
-            if not encoded_string[idx].isdigit():
-                string += encoded_string[idx]
+            idx, digits, new_digits = 0, "", ""
+            while idx < len(word):
+                if word[idx].isdigit():
+                    digits += word[idx]
+                elif digits != "":
+                    new_digits += multiply_and_reverse(digits)
+                    new_digits += word[idx]
+                    digits = ""
+                else:
+                    new_digits += word[idx]
                 idx += 1
-                continue
-
-            digits = self._get_digits_from_string(encoded_string, idx)
-            new_digits = int(digits[::-1]) // 3
-            if new_digits != 0 and digits[-1] == "0":
-                new_digits = "0" + str(new_digits)
-            string += str(new_digits)
-            idx += len(digits)
-
-        return string
+            new_digits += digits
+            encoded_text.append(new_digits)
+        return " ".join(encoded_text)
 
     @staticmethod
-    def _add_special_symbol(string: str) -> str:
+    def _reverse_transform_numbers(encoded_text: str) -> str:
+        def reverse_and_divide(string: str) -> str:
+            new_string = int(string[::-1]) // 3
+            if new_string != 0 and string[-1] == "0":
+                new_string = "0" + str(new_string)
+            return str(new_string)
+
+        text = []
+        words = encoded_text.split()
+        for word in words:
+            clear_word = "".join(re.findall(r"\b\w+\b", word))
+            if not clear_word.isdigit():
+                text.append(word)
+                continue
+
+            idx, digits, new_digits = 0, "", ""
+            while idx < len(word):
+                if word[idx].isdigit():
+                    digits += word[idx]
+                elif digits != "":
+                    new_digits += reverse_and_divide(digits)
+                    new_digits += word[idx]
+                    digits = ""
+                else:
+                    new_digits += word[idx]
+                idx += 1
+
+            new_digits += digits
+            text.append(new_digits)
+        return " ".join(text)
+
+    @staticmethod
+    def _add_special_symbol(text: str) -> str:
         """
         After every third character in the string, insert a #.
         """
-        return "#".join(string[i:i+3] for i in range(0, len(string), 3))
+        return "#".join(text[i:i + 3] for i in range(0, len(text), 3))
 
     @staticmethod
-    def _delete_special_symbol(encoded_string: str) -> str:
-        return encoded_string.replace("#", "")
+    def _delete_special_symbol(encoded_text: str) -> str:
+        return encoded_text.replace("#", "")
 
     @staticmethod
     def _index_based(string: str) -> str:
@@ -195,12 +224,3 @@ class CustomCodec:
                 idx += 1
 
         return "".join(decoded_string)
-
-    @staticmethod
-    def _get_digits_from_string(string: str, start: int) -> str:
-        i = start
-        digits = ""
-        while i < len(string) and string[i].isdigit():
-            digits += string[i]
-            i += 1
-        return digits
