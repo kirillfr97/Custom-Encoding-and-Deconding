@@ -65,7 +65,8 @@ class CustomCodec:
                 else:
                     new_digits += word[idx]
                 idx += 1
-            new_digits += digits
+
+            new_digits += digits if not digits.isdigit() else multiply_and_reverse(digits)
             encoded_text.append(new_digits)
         return " ".join(encoded_text)
 
@@ -97,7 +98,7 @@ class CustomCodec:
                     new_digits += word[idx]
                 idx += 1
 
-            new_digits += digits
+            new_digits += digits if not digits.isdigit() else reverse_and_divide(digits)
             text.append(new_digits)
         return " ".join(text)
 
